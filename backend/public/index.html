@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Doomsday Ready | Backend Engine</title>
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+        <style>
+            :root {
+                --bg: #0b0c0e;
+                --panel: #111316;
+                --panel-soft: #17191d;
+                --line: #25282c;
+                --text-primary: #f1f0ed;
+                --text-secondary: #858990;
+                --red: #ef3e36;
+                --red-dark: #8f1e1b;
+                --red-glow: rgba(239, 62, 54, 0.25);
+                --radius-btn: 6px;
+                --radius-card: 14px;
+            }
+
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: 'DM Sans', sans-serif;
+                background-color: var(--bg);
+                color: var(--text-primary);
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 2.5rem 1.25rem;
+                overflow-x: hidden;
+                position: relative;
+            }
+
+            /* Ambient Red Atmospheric Background */
+            .mesh-bg {
+                position: fixed;
+                inset: 0;
+                z-index: 0;
+                pointer-events: none;
+                overflow: hidden;
+                background:
+                    radial-gradient(circle at 50% -10%, rgba(239, 62, 54, 0.16), transparent 50%),
+                    radial-gradient(circle at 90% 90%, rgba(143, 30, 27, 0.12), transparent 40%),
+                    #0b0c0e;
+            }
+
+            .mesh-blob {
+                position: absolute;
+                border-radius: 50%;
+                filter: blur(120px);
+                opacity: 0.28;
+                will-change: transform;
+            }
+
+            .blob-1 {
+                width: 55vw;
+                height: 55vw;
+                max-width: 650px;
+                max-height: 650px;
+                background: radial-gradient(circle, #8f1e1b 0%, rgba(143, 30, 27, 0) 70%);
+                top: -15%;
+                left: -10%;
+                animation: moveBlob1 20s infinite alternate ease-in-out;
+            }
+
+            .blob-2 {
+                width: 50vw;
+                height: 50vw;
+                max-width: 600px;
+                max-height: 600px;
+                background: radial-gradient(circle, #ef3e36 0%, rgba(239, 62, 54, 0) 70%);
+                bottom: -15%;
+                right: -10%;
+                animation: moveBlob2 18s infinite alternate ease-in-out;
+            }
+
+            @keyframes moveBlob1 {
+                0% { transform: translate(0, 0) scale(1); }
+                100% { transform: translate(25vw, 20vh) scale(1.15); }
+            }
+
+            @keyframes moveBlob2 {
+                0% { transform: translate(0, 0) scale(1); }
+                100% { transform: translate(-25vw, -20vh) scale(1.1); }
+            }
+
+            .content-wrapper {
+                width: 100%;
+                max-width: 780px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 2.2rem;
+                position: relative;
+                z-index: 1;
+            }
+
+            /* Brand */
+            .brand {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .brand-mark {
+                width: 44px;
+                height: 44px;
+                display: grid;
+                place-items: center;
+                border: 1px solid #da3c35;
+                background: linear-gradient(135deg, #8f1e1b, #32100f);
+                transform: skew(-7deg);
+                font-family: 'Barlow Condensed', sans-serif;
+                font-size: 18px;
+                font-weight: 700;
+                letter-spacing: -0.5px;
+                color: #ffffff;
+                box-shadow: 0 4px 18px rgba(239, 62, 54, 0.35);
+            }
+
+            .brand-text strong,
+            .brand-text small {
+                display: block;
+                font-family: 'Barlow Condensed', sans-serif;
+                line-height: 1;
+            }
+
+            .brand-text strong {
+                font-size: 20px;
+                letter-spacing: 2px;
+                color: #ffffff;
+            }
+
+            .brand-text small {
+                color: var(--red);
+                font-size: 12px;
+                margin-top: 5px;
+                letter-spacing: 4.5px;
+            }
+
+            /* Hero Card */
+            .hero-card {
+                width: 100%;
+                background: transparent;
+                padding: 0.5rem 0;
+                text-align: center;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            /* Engine Operational Status Badge */
+            .engine-status-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.4rem 0.55rem 0.4rem 0.85rem;
+                background: linear-gradient(135deg, #1c1314 0%, #171112 100%);
+                border: 1px solid rgba(239, 62, 54, 0.35);
+                border-radius: 8px;
+                box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6), 0 0 16px -2px var(--red-glow);
+                margin-bottom: 1.5rem;
+            }
+
+            .radar-beacon {
+                position: relative;
+                width: 12px;
+                height: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .beacon-core {
+                width: 8px;
+                height: 8px;
+                background: var(--red);
+                border-radius: 50%;
+                box-shadow: 0 0 10px var(--red);
+                z-index: 2;
+            }
+
+            .beacon-ring {
+                position: absolute;
+                inset: -2px;
+                border-radius: 50%;
+                border: 1.5px solid var(--red);
+                animation: radarPing 2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+            }
+
+            @keyframes radarPing {
+                0% { transform: scale(0.8); opacity: 1; }
+                100% { transform: scale(2.4); opacity: 0; }
+            }
+
+            .engine-status-text {
+                font-size: 0.78rem;
+                font-weight: 700;
+                letter-spacing: 0.12em;
+                color: #ffffff;
+                text-transform: uppercase;
+                font-family: 'DM Sans', sans-serif;
+            }
+
+            .status-sep {
+                width: 1px;
+                height: 14px;
+                background: rgba(255, 255, 255, 0.15);
+            }
+
+            .status-pill-tag {
+                font-size: 0.65rem;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                padding: 0.2rem 0.55rem;
+                background: rgba(239, 62, 54, 0.2);
+                color: #ff6e67;
+                border: 1px solid rgba(239, 62, 54, 0.4);
+                border-radius: 4px;
+                text-transform: uppercase;
+            }
+
+            h1 {
+                font-family: 'Barlow Condensed', sans-serif;
+                font-size: clamp(2.4rem, 5.5vw, 3.6rem);
+                font-weight: 700;
+                color: #ffffff;
+                line-height: 1.05;
+                letter-spacing: 0.5px;
+                margin-bottom: 0.85rem;
+                text-transform: uppercase;
+            }
+
+            .tagline {
+                font-size: 1.05rem;
+                font-weight: 600;
+                color: var(--text-primary);
+                max-width: 580px;
+                margin-bottom: 0.75rem;
+                line-height: 1.5;
+            }
+
+            .description {
+                font-size: 0.92rem;
+                color: var(--text-secondary);
+                max-width: 620px;
+                line-height: 1.6;
+                margin-bottom: 1.75rem;
+            }
+
+            /* Verticals / Capabilities */
+            .verticals {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 0.55rem;
+            }
+
+            .vertical-item {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.45rem;
+                padding: 0.45rem 0.95rem;
+                background: var(--panel-soft);
+                border: 1px solid var(--line);
+                border-radius: var(--radius-btn);
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: var(--text-primary);
+            }
+
+            .vertical-item .dot {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: var(--red);
+                box-shadow: 0 0 6px var(--red);
+            }
+
+
+
+            /* Info Bar */
+            .info-bar {
+                width: 100%;
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1.15rem;
+            }
+
+            .info-item {
+                background: var(--panel);
+                border: 1px solid var(--line);
+                border-radius: var(--radius-card);
+                padding: 1.4rem 1.5rem;
+                display: flex;
+                flex-direction: column;
+                gap: 0.4rem;
+                box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+            }
+
+            .info-item label {
+                font-size: 0.72rem;
+                text-transform: uppercase;
+                color: var(--text-secondary);
+                font-weight: 700;
+                letter-spacing: 0.1em;
+            }
+
+            .info-item span {
+                font-size: 1.35rem;
+                font-family: 'Barlow Condensed', sans-serif;
+                font-weight: 700;
+                color: var(--text-primary);
+                letter-spacing: 0.5px;
+            }
+
+            #running-time {
+                color: #ff6e67;
+                font-family: monospace;
+                font-size: 1.25rem;
+                font-weight: 600;
+            }
+
+            footer {
+                margin-top: 0.5rem;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 0.4rem;
+                color: var(--text-secondary);
+                font-size: 0.8rem;
+                font-weight: 500;
+            }
+
+            footer strong {
+                color: var(--text-primary);
+            }
+
+            @media (max-width: 768px) {
+                .info-bar {
+                    grid-template-columns: 1fr;
+                    gap: 0.75rem;
+                }
+                .info-item {
+                    align-items: center;
+                    text-align: center;
+                    padding: 1.15rem;
+                }
+                h1 {
+                    font-size: 2.2rem;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="mesh-bg">
+            <div class="mesh-blob blob-1"></div>
+            <div class="mesh-blob blob-2"></div>
+        </div>
+
+        <div class="content-wrapper">
+            <!-- Brand -->
+            <header class="brand">
+                <div class="brand-mark">DR</div>
+                <div class="brand-text">
+                    <strong>DOOMSDAY</strong>
+                    <small>READY</small>
+                </div>
+            </header>
+
+            <!-- Hero Section -->
+            <main class="hero-card">
+                <!-- Status Badge -->
+                <div class="engine-status-badge">
+                    <div class="radar-beacon">
+                        <span class="beacon-core"></span>
+                        <span class="beacon-ring"></span>
+                    </div>
+                    <span class="engine-status-text">ENGINE OPERATIONAL</span>
+                    <span class="status-sep"></span>
+                    <span class="status-pill-tag">ACTIVE</span>
+                </div>
+
+                <h1>Backend API Engine</h1>
+                <p class="tagline">MCU Story Sequence Engine, Prerequisite Graphs &amp; Ticket Bundle Optimizer</p>
+                <p class="description">
+                    The core service engine powering timeline calculations, topological watch order resolution, and cinema watch party bundle allocations for Avengers: Doomsday.
+                </p>
+
+                <div class="verticals">
+                    <span class="vertical-item"><span class="dot"></span> Prerequisite Dependency Graphs</span>
+                    <span class="vertical-item"><span class="dot"></span> Rewatch Sequence Engine</span>
+                    <span class="vertical-item"><span class="dot"></span> Dynamic Bundle Calculator</span>
+                    <span class="vertical-item"><span class="dot"></span> Movie Archive Service</span>
+                </div>
+
+
+            </main>
+
+            <!-- Info Bar with Server State -->
+            <div class="info-bar">
+                <div class="info-item">
+                    <label>Environment</label>
+                    <span>{{NODE_ENV}}</span>
+                </div>
+                <div class="info-item">
+                    <label>Network Port</label>
+                    <span>{{PORT}}</span>
+                </div>
+                <div class="info-item">
+                    <label>Server Time</label>
+                    <span id="running-time">00:00:00</span>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer>
+                <p>&copy; <span id="year"></span> <strong>Doomsday Ready Platform</strong>. All rights reserved.</p>
+                <p style="opacity: 0.55; font-size: 0.72rem">BUILD_STABLE: 1.0.0</p>
+            </footer>
+        </div>
+
+        <script>
+            document.getElementById("year").textContent = new Date().getFullYear();
+
+            function updateClock() {
+                const now = new Date();
+                const h = now.getHours().toString().padStart(2, "0");
+                const m = now.getMinutes().toString().padStart(2, "0");
+                const s = now.getSeconds().toString().padStart(2, "0");
+                document.getElementById("running-time").textContent = `${h}:${m}:${s}`;
+            }
+
+            updateClock();
+            setInterval(updateClock, 1000);
+        </script>
+    </body>
+</html>
