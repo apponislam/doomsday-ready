@@ -5,8 +5,12 @@
 [![Express](https://img.shields.io/badge/Express-5-lightgrey?style=flat-square&logo=express&logoColor=black)](https://expressjs.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-8-green?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-blue?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=flat-square&logo=vercel)](https://doomsday-ready-frontend.vercel.app)
 
 **Doomsday Ready** is a full-stack web application designed for MCU fans catching up before _Avengers: Doomsday_. It helps viewers determine the exact prerequisites and sequence to watch films in, tracks watched status, and solves cinema group bundle allocations for opening-night watch parties.
+
+> 🌐 **Live Frontend Application**: [https://doomsday-ready-frontend.vercel.app](https://doomsday-ready-frontend.vercel.app)  
+> ⚡ **Live Backend API**: [https://doomsday-ready-backend.vercel.app/api](https://doomsday-ready-backend.vercel.app/api)
 
 ---
 
@@ -19,6 +23,7 @@
 - [Design Decisions & Assumptions](#-design-decisions--assumptions)
 - [API Reference](#-api-reference)
 - [Frontend Views](#-frontend-views)
+- [Cloud Deployment (Vercel)](#-cloud-deployment-vercel)
 - [Quick Start with Docker Compose (Bonus)](#-quick-start-with-docker-compose-bonus)
 - [Manual Local Development](#-manual-local-development)
 
@@ -117,31 +122,31 @@ erDiagram
 
 Both collections utilize **deep indexing** to guarantee $O(1)$ and $O(\log N)$ performance under load:
 
-| Collection | Index | Type | Optimized Query Pattern |
-| :--- | :--- | :--- | :--- |
-| **`Movie`** | `{ id: 1 }` | `unique, sparse` | Fast numeric ID lookups (`/api/movies/:id`). |
-| **`Movie`** | `{ title: 1 }` | `unique, collation` | Case-insensitive title uniqueness enforcement (`"Iron Man"` vs `"iron man"`). |
-| **`Movie`** | `{ title: "text" }` | Full-Text Index | High-speed keyword text searching across title archive. |
-| **`Movie`** | `{ watched: 1, year: 1, id: 1 }` | Compound Index | Filtered archive browsing (`/api/movies?watched=true`) with zero in-memory sorting. |
-| **`Movie`** | `{ year: 1, id: 1 }` | Compound Index | Default chronological timeline sorting (`.sort({ year: 1, id: 1 })`). |
-| **`Movie`** | `{ prerequisites: 1 }` | Multikey Index | Traversal of parent-child dependencies and circular dependency checks (`canReach`). |
-| **`Movie`** | `{ watched: 1, runtime: 1 }` | Compound Index | Aggregation and instant computation of remaining unwatched minutes. |
-| **`Cinema`** | `{ id: 1 }` | `unique, sparse` | Fast numeric cinema ID lookups (`/api/cinemas/:id`). |
-| **`Cinema`** | `{ name: 1 }` | `unique, collation` | Case-insensitive cinema name uniqueness. |
-| **`Cinema`** | `{ bundles: 1 }` | Multikey Index | Rapid filtering for cinemas matching specific party bundle capacities. |
-| **`Cinema`** | `{ id: 1, createdAt: 1 }` | Compound Index | Covers default cinema catalog listing (`.sort({ id: 1, createdAt: 1 })`). |
-| **`Cinema`** | `{ createdAt: -1 }` | Single Field | Chronological audit and recency ordering. |
+| Collection   | Index                            | Type                | Optimized Query Pattern                                                             |
+| :----------- | :------------------------------- | :------------------ | :---------------------------------------------------------------------------------- |
+| **`Movie`**  | `{ id: 1 }`                      | `unique, sparse`    | Fast numeric ID lookups (`/api/movies/:id`).                                        |
+| **`Movie`**  | `{ title: 1 }`                   | `unique, collation` | Case-insensitive title uniqueness enforcement (`"Iron Man"` vs `"iron man"`).       |
+| **`Movie`**  | `{ title: "text" }`              | Full-Text Index     | High-speed keyword text searching across title archive.                             |
+| **`Movie`**  | `{ watched: 1, year: 1, id: 1 }` | Compound Index      | Filtered archive browsing (`/api/movies?watched=true`) with zero in-memory sorting. |
+| **`Movie`**  | `{ year: 1, id: 1 }`             | Compound Index      | Default chronological timeline sorting (`.sort({ year: 1, id: 1 })`).               |
+| **`Movie`**  | `{ prerequisites: 1 }`           | Multikey Index      | Traversal of parent-child dependencies and circular dependency checks (`canReach`). |
+| **`Movie`**  | `{ watched: 1, runtime: 1 }`     | Compound Index      | Aggregation and instant computation of remaining unwatched minutes.                 |
+| **`Cinema`** | `{ id: 1 }`                      | `unique, sparse`    | Fast numeric cinema ID lookups (`/api/cinemas/:id`).                                |
+| **`Cinema`** | `{ name: 1 }`                    | `unique, collation` | Case-insensitive cinema name uniqueness.                                            |
+| **`Cinema`** | `{ bundles: 1 }`                 | Multikey Index      | Rapid filtering for cinemas matching specific party bundle capacities.              |
+| **`Cinema`** | `{ id: 1, createdAt: 1 }`        | Compound Index      | Covers default cinema catalog listing (`.sort({ id: 1, createdAt: 1 })`).           |
+| **`Cinema`** | `{ createdAt: -1 }`              | Single Field        | Chronological audit and recency ordering.                                           |
 
 ### 4. Integrity & Architectural Invariants
 
 1. **DAG Prerequisite Invariant**:
-   - Every movie's `prerequisites` must form a valid **Directed Acyclic Graph (DAG)**.
-   - Self-dependencies (`A -> A`) and transitive cycles (`A -> B -> C -> A`) are detected via DFS reachability prior to write and rejected with HTTP `409 CIRCULAR_DEPENDENCY`.
+    - Every movie's `prerequisites` must form a valid **Directed Acyclic Graph (DAG)**.
+    - Self-dependencies (`A -> A`) and transitive cycles (`A -> B -> C -> A`) are detected via DFS reachability prior to write and rejected with HTTP `409 CIRCULAR_DEPENDENCY`.
 2. **Exact Fit Bundle Invariant**:
-   - Cinema party booking calculates the absolute minimum bundle count using dynamic programming coin-change with **zero empty seats**. If no exact combination sums to the requested group size, the system returns `{ possible: false, message: "Not possible" }`.
+    - Cinema party booking calculates the absolute minimum bundle count using dynamic programming coin-change with **zero empty seats**. If no exact combination sums to the requested group size, the system returns `{ possible: false, message: "Not possible" }`.
 3. **Decoupled Architecture**:
-   - The frontend communicates with the backend solely via RESTful JSON contracts (`/api/movies`, `/api/cinemas`).
-   - Redux Toolkit Query and typed React Context provide caching, background revalidation, and optimistic updates.
+    - The frontend communicates with the backend solely via RESTful JSON contracts (`/api/movies`, `/api/cinemas`).
+    - Redux Toolkit Query and typed React Context provide caching, background revalidation, and optimistic updates.
 
 ---
 
@@ -198,17 +203,17 @@ _Note: All core algorithmic routines (graph cycle checking, topological post-ord
 
 ## 📡 API Reference
 
-Base URL: `http://localhost:5000/api`
+Base URL: `http://localhost:5000/api` (Local) / `https://doomsday-ready-backend.vercel.app/api` (Production)
 
 ### Movies API
 
-| Method  | Endpoint                    | Description                                                 | Status Codes        |
-| ------- | --------------------------- | ----------------------------------------------------------- | ------------------- |
-| `POST`  | `/movies`                   | Create a new movie                                          | `201`, `400`, `409` |
-| `GET`   | `/movies`                   | List all movies (optional `?searchTerm=` and `?watched=`)   | `200`               |
-| `GET`   | `/movies/:id`               | Get movie details by ID                                     | `200`, `404`        |
-| `PATCH` | `/movies/:id`               | Update movie (title, year, runtime, prerequisites, watched) | `200`, `400`, `409` |
-| `GET`   | `/movies/:id/rewatch-order` | Calculate prerequisite sequence, watched count, and runtime | `200`, `404`        |
+| Method  | Endpoint                    | Description                                                                              | Status Codes        |
+| ------- | --------------------------- | ---------------------------------------------------------------------------------------- | ------------------- |
+| `POST`  | `/movies`                   | Create a new movie with prerequisites and runtime validation                             | `201`, `400`, `409` |
+| `GET`   | `/movies`                   | Paginated movie list (supports `?page=1&limit=10&searchTerm=&watched=`) with Mongo stats | `200`               |
+| `GET`   | `/movies/:id`               | Get movie details by ID                                                                  | `200`, `404`        |
+| `PATCH` | `/movies/:id`               | Update movie (title, year, runtime, prerequisites, watched)                              | `200`, `400`, `409` |
+| `GET`   | `/movies/:id/rewatch-order` | Calculate prerequisite sequence, watched count, and runtime                              | `200`, `404`        |
 
 #### Example: Rewatch Order Response
 
@@ -276,11 +281,55 @@ Base URL: `http://localhost:5000/api`
 
 ## 💻 Frontend Views
 
-| View                    | Route      | Description                                                                                                   |
-| ----------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
-| **Movies Timeline**     | `/movies`  | Searchable grid of MCU titles, watched checkboxes, and add/edit modals with live cycle prevention feedback.   |
-| **Rewatch Plan**        | `/plan`    | Target movie selector, visual timeline of prerequisite films, completion percentage bar, and hours remaining. |
-| **Watch-Party Booking** | `/booking` | Cinema selection dropdown, group size stepper, and opening-night bundle allocation cards.                     |
+| View                     | Route          | Description                                                                                                    |
+| ------------------------ | -------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Movies Timeline**      | `/movies`, `/` | Searchable grid of MCU titles, watched checkboxes, pagination controls, and add/edit modals with cycle checks. |
+| **Rewatch Plan**         | `/plan`        | Target movie selector, visual timeline of prerequisite films, completion percentage bar, and hours remaining.  |
+| **Watch-Party Booking**  | `/booking`     | Cinema selection dropdown, group size stepper, and opening-night bundle allocation cards.                      |
+| **404 Anomaly Protocol** | `/_not-found`  | Dedicated full-screen tactical HUD error screen with telemetry logs and mission recovery links.                |
+
+---
+
+## ☁️ Cloud Deployment (Vercel)
+
+Both the frontend and backend are fully configured for zero-friction cloud deployment on [Vercel](https://vercel.com):
+
+### 1. Architecture Overview
+
+- **Frontend ([frontend/](file:///e:/apponislam/doomsday-ready/frontend))**: Next.js 16 with React 19, Turbopack, and automatic static optimization. Deployed to `https://doomsday-ready-frontend.vercel.app`.
+- **Backend ([backend/](file:///e:/apponislam/doomsday-ready/backend))**: Node.js & Express compiled via `@vercel/node` with serverless entry routing (`backend/vercel.json`), pre-configured CORS headers, and MongoDB Atlas connection lifecycle handling. Deployed to `https://doomsday-ready-backend.vercel.app`.
+- **Monorepo Multi-Service ([vercel.json](file:///e:/apponislam/doomsday-ready/vercel.json))**: Single-project deployment routing `/api/*` to the backend and `/*` to the frontend.
+
+### 2. Environment Variables Configuration
+
+| Variable               | Target Service | Purpose & Example Value                                                             |
+| :--------------------- | :------------- | :---------------------------------------------------------------------------------- |
+| `MONGODB_URL`          | **Backend**    | Cloud MongoDB Atlas URI (`mongodb+srv://<user>:<password>@cluster0...`).            |
+| `NODE_ENV`             | **Backend**    | Set to `production`.                                                                |
+| `PORT`                 | **Backend**    | Server port fallback (default: `5000`).                                             |
+| `IP`                   | **Backend**    | Bind address (default: `0.0.0.0`).                                                  |
+| `NEXT_PUBLIC_BASE_API` | **Frontend**   | Backend API base URL (`https://doomsday-ready-backend.vercel.app`).                 |
+| `NEXT_PUBLIC_SITE_URL` | **Frontend**   | Frontend domain for OpenGraph / SEO (`https://doomsday-ready-frontend.vercel.app`). |
+
+### 3. Backend Vercel Configuration (`backend/vercel.json`)
+
+```json
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "src/server.ts",
+            "use": "@vercel/node"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "src/server.ts"
+        }
+    ]
+}
+```
 
 ---
 
@@ -356,12 +405,14 @@ npm run dev
 If you prefer separate terminal windows:
 
 #### Backend Only
+
 ```bash
 npm run dev:backend
 # or: cd backend && npm run dev
 ```
 
 #### Frontend Only
+
 ```bash
 npm run dev:frontend
 # or: cd frontend && npm run dev

@@ -10,7 +10,13 @@ import config from "./app/config";
 const app: Application = express();
 
 const corsOptions = {
-    origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:3075"],
+    origin: [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3075",
+        "https://doomsday-ready-frontend.vercel.app",
+        "http://doomsday-ready-frontend.vercel.app",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
