@@ -87,6 +87,15 @@ const createMovie = async (payload: IMovie) => {
             if (!prereqMovie) {
                 throw new ApiError(httpStatus.BAD_REQUEST, `Prerequisite movie "${p}" not found.`);
             }
+
+            // Direct self-dependency check on creation
+            if (
+                prereqMovie.title.trim().toLowerCase() === payload.title.trim().toLowerCase() ||
+                (payload.id && prereqMovie.id === payload.id)
+            ) {
+                throw new ApiError(httpStatus.CONFLICT, "409 CIRCULAR_DEPENDENCY: A movie cannot depend on itself directly.");
+            }
+
             normalizedPrereqs.push(prereqMovie._id);
         }
     }
@@ -175,18 +184,26 @@ const getRewatchOrder = async (id: string) => {
 
     const result: IMovie[] = [];
     const visited = new Set<string>();
+    const inStack = new Set<string>();
     const targetIdStr = targetMovie._id.toString();
 
     const visit = (currentIdStr: string) => {
         const currentMovie = byId.get(currentIdStr);
         if (!currentMovie) return;
 
+        const primaryIdStr = (currentMovie as any)._id.toString();
+        if (visited.has(primaryIdStr)) return;
+        if (inStack.has(primaryIdStr)) {
+            throw new ApiError(httpStatus.CONFLICT, "409 CIRCULAR_DEPENDENCY: Circular dependency detected in movie prerequisites.");
+        }
+
+        inStack.add(primaryIdStr);
         const prereqs = (currentMovie.prerequisites || []).map((p: any) => p.toString());
         for (const prereqId of prereqs) {
             visit(prereqId);
         }
+        inStack.delete(primaryIdStr);
 
-        const primaryIdStr = (currentMovie as any)._id.toString();
         if (primaryIdStr !== targetIdStr && !visited.has(primaryIdStr)) {
             visited.add(primaryIdStr);
             result.push(currentMovie);

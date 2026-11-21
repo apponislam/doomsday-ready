@@ -46,6 +46,11 @@ const findCinemaById = async (id: string | number) => {
 };
 
 const createCinema = async (payload: ICinema) => {
+    // Support either bundleSizes or bundles field
+    if ((!payload.bundles || payload.bundles.length === 0) && payload.bundleSizes) {
+        payload.bundles = payload.bundleSizes;
+    }
+
     const existing = await CinemaModel.findOne({ name: payload.name.trim() });
     if (existing) {
         throw new ApiError(httpStatus.CONFLICT, `A cinema named "${payload.name}" already exists.`);

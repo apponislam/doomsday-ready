@@ -5,6 +5,7 @@ export interface ICinema {
     id?: number;
     name: string;
     bundles: number[];
+    bundleSizes?: number[];
     createdAt?: Date;
     updatedAt?: Date;
 }
