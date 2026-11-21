@@ -4,7 +4,7 @@ import path from "path";
 import fs from "fs";
 import notFound from "./errors/notFound";
 import globalErrorHandler from "./errors/globalErrorhandler";
-// import router from "./app/routes";
+import router from "./app/routes";
 import config from "./app/config";
 
 const app: Application = express();
@@ -39,7 +39,7 @@ app.get("/", (req: Request, res: Response) => {
     });
 });
 
-// app.use("/api/v1", router);
+app.use("/api", router);
 
 app.use(notFound);
 app.use(globalErrorHandler);

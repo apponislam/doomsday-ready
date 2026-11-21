@@ -84,7 +84,7 @@ export function MoviesView({ movies: propsMovies, setMovies: propsSetMovies }: M
                     <h2>Your cinematic timeline</h2>
                 </div>
                 <PrimaryButton onClick={() => setModal("add")}>
-                    <Icon name="plus" /> ADD MOVIE
+                    <Icon name="plus" /> <span className="btn-text">ADD MOVIE</span>
                 </PrimaryButton>
             </div>
 

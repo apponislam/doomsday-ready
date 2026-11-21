@@ -25,7 +25,7 @@ export function PlanTimelineRow({ movie, index, onToggleWatched }: PlanTimelineR
                 </div>
 
                 <button onClick={() => onToggleWatched(movie.id)}>
-                    {movie.watched ? "WATCHED" : "MARK AS WATCHED"}
+                    <span className="btn-text">{movie.watched ? "WATCHED" : "MARK AS WATCHED"}</span>
                     <span className={movie.watched ? "checked" : ""}>{movie.watched && <Icon name="check" size={13} />}</span>
                 </button>
             </div>
