@@ -5,12 +5,11 @@ const MovieSchema = new Schema<IMovie>(
     {
         id: {
             type: Number,
-            index: true,
+            required: false,
         },
         title: {
             type: String,
             required: [true, "Title is required."],
-            unique: true,
             trim: true,
         },
         year: {
@@ -37,11 +36,29 @@ const MovieSchema = new Schema<IMovie>(
     {
         timestamps: true,
         versionKey: false,
+        autoIndex: true,
     },
 );
 
-// High-Performance Query Indexes
-MovieSchema.index({ title: 1 }, { unique: true });
-MovieSchema.index({ watched: 1, year: 1 });
+MovieSchema.index({ id: 1 }, { unique: true, sparse: true, name: "idx_movie_id_unique" });
+MovieSchema.index(
+    { title: 1 },
+    {
+        unique: true,
+        collation: { locale: "en", strength: 2 },
+        name: "idx_movie_title_unique_ci",
+    },
+);
+MovieSchema.index(
+    { title: "text" },
+    {
+        weights: { title: 10 },
+        name: "idx_movie_title_text",
+    },
+);
+MovieSchema.index({ watched: 1, year: 1, id: 1 }, { name: "idx_movie_watched_year_id" });
+MovieSchema.index({ year: 1, id: 1 }, { name: "idx_movie_chronological_year_id" });
+MovieSchema.index({ prerequisites: 1 }, { name: "idx_movie_prerequisites_multikey" });
+MovieSchema.index({ watched: 1, runtime: 1 }, { name: "idx_movie_watched_runtime" });
 
 export const MovieModel = mongoose.model<IMovie>("Movie", MovieSchema);

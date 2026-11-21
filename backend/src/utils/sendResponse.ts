@@ -14,6 +14,9 @@ type TResponse<T> = {
         hasPrev?: boolean;
         [key: string]: any;
     };
+    stats?: {
+        [key: string]: any;
+    };
 };
 
 const sendResponse = <T>(res: Response, data: TResponse<T>) => {
@@ -22,6 +25,7 @@ const sendResponse = <T>(res: Response, data: TResponse<T>) => {
         message: data.message,
         data: data.data,
         meta: data.meta,
+        stats: data.stats,
     });
 };
 

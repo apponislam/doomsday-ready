@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#991f1a"/>
+      <stop offset="50%" stop-color="#4e1312"/>
+      <stop offset="100%" stop-color="#140606"/>
+    </linearGradient>
+    <linearGradient id="borderGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ef3e36"/>
+      <stop offset="100%" stop-color="#721a17"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background Shield Badge -->
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#bgGradient)" stroke="url(#borderGlow)" stroke-width="3"/>
+
+  <!-- Subtle Tactical Inner Border -->
+  <rect x="7.5" y="7.5" width="49" height="49" rx="11" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1"/>
+
+  <!-- Tactical Corner Accents -->
+  <path d="M12 18V12H18" stroke="#ef3e36" stroke-width="2" stroke-linecap="round"/>
+  <path d="M52 18V12H46" stroke="#ef3e36" stroke-width="2" stroke-linecap="round"/>
+  <path d="M12 46V52H18" stroke="#ef3e36" stroke-width="2" stroke-linecap="round"/>
+  <path d="M52 46V52H46" stroke="#ef3e36" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Bold Monogram "DR" (Doomsday Ready) -->
+  <text x="32" y="42" font-family="-apple-system, BlinkMacSystemFont, 'Barlow Condensed', 'Arial Black', sans-serif" font-size="27" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="-0.5">DR</text>
+</svg>
+
