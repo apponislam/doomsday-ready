@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { MovieProvider } from "@/context/movie-context";
+import { ReduxProvider } from "@/components/providers/redux-provider";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
@@ -80,7 +80,7 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className="bg-background text-foreground min-h-screen min-w-[320px] font-sans">
-                <MovieProvider>
+                <ReduxProvider>
                     <div className="min-h-screen bg-[radial-gradient(circle_at_90%_0%,rgba(131,24,22,0.12),transparent_30%),var(--color-background)]">
                         <Sidebar />
                         <main className="min-h-screen md:ml-61 max-lg:md:ml-19.5 max-md:pb-17">
@@ -91,7 +91,7 @@ export default function RootLayout({
                         </main>
                         <MobileNav />
                     </div>
-                </MovieProvider>
+                </ReduxProvider>
             </body>
         </html>
     );

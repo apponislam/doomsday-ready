@@ -5,27 +5,37 @@ import { Movie } from "@/types";
  */
 export function getRewatchOrder(targetId: number, movies: Movie[]): Movie[] {
     const result: Movie[] = [];
-    const visited = new Set<number>();
-    const inStack = new Set<number>();
-    const byId = new Map(movies.map((movie) => [movie.id, movie]));
+    const visited = new Set<string>();
+    const inStack = new Set<string>();
+    const byKey = new Map<string, Movie>();
 
-    const visit = (id: number) => {
-        if (visited.has(id)) return;
-        if (inStack.has(id)) return; // Prevents infinite recursion on cycles
+    for (const movie of movies) {
+        byKey.set(String(movie.id), movie);
+        if ((movie as any)._id) {
+            byKey.set(String((movie as any)._id), movie);
+        }
+    }
 
-        const movie = byId.get(id);
+    const visit = (key: string) => {
+        const movie = byKey.get(key);
         if (!movie) return;
 
-        inStack.add(id);
-        movie.prerequisites.forEach(visit);
-        inStack.delete(id);
+        const primaryKey = String(movie.id);
+        if (visited.has(primaryKey)) return;
+        if (inStack.has(primaryKey)) return;
 
-        if (id !== targetId && !visited.has(id)) {
-            visited.add(id);
+        inStack.add(primaryKey);
+        (movie.prerequisites || []).forEach((prereq) => {
+            visit(String(prereq));
+        });
+        inStack.delete(primaryKey);
+
+        if (movie.id !== targetId && !visited.has(primaryKey)) {
+            visited.add(primaryKey);
             result.push(movie);
         }
     };
 
-    visit(targetId);
+    visit(String(targetId));
     return result;
 }

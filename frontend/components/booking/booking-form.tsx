@@ -1,8 +1,22 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Cinema } from "@/types";
 import { Icon } from "@/components/icons/icon";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { GroupSizeCounter } from "@/components/booking/group-size-counter";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+const bookingFormSchema = z.object({
+    cinemaId: z.number().min(1, "Please select a cinema"),
+    groupSize: z
+        .number()
+        .int("Group size must be an integer")
+        .min(1, "Group size must be at least 1 person")
+        .max(1000, "Group size cannot exceed 1,000 people"),
+});
+
+export type BookingFormValues = z.infer<typeof bookingFormSchema>;
 
 interface BookingFormProps {
     cinemas: Cinema[];
@@ -14,10 +28,39 @@ interface BookingFormProps {
 }
 
 export function BookingForm({ cinemas, cinemaId, onCinemaChange, group, onGroupChange, onCalculate }: BookingFormProps) {
-    const cinema = cinemas.find((c) => c.id === cinemaId) || cinemas[0];
+    const {
+        control,
+        handleSubmit,
+        setValue,
+        watch,
+        formState: { errors },
+    } = useForm<BookingFormValues>({
+        resolver: zodResolver(bookingFormSchema),
+        defaultValues: {
+            cinemaId,
+            groupSize: group,
+        },
+    });
+
+    const currentCinemaId = watch("cinemaId");
+    const cinema = cinemas.find((c) => c.id === currentCinemaId) || cinemas[0];
+
+    useEffect(() => {
+        setValue("cinemaId", cinemaId);
+    }, [cinemaId, setValue]);
+
+    useEffect(() => {
+        setValue("groupSize", group);
+    }, [group, setValue]);
+
+    const onSubmit = (data: BookingFormValues) => {
+        onCinemaChange(data.cinemaId);
+        onGroupChange(data.groupSize);
+        onCalculate();
+    };
 
     return (
-        <section className="p-[clamp(30px,5vw,64px)] max-md:p-[30px_22px] bg-panel">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-[clamp(30px,5vw,64px)] max-md:p-[30px_22px] bg-panel">
             <span className="flex items-center gap-1.5 text-brand-red font-semibold text-[10px] tracking-[2px] uppercase">
                 <Icon name="ticket" size={15} /> WATCH PARTY QUOTE
             </span>
@@ -30,22 +73,50 @@ export function BookingForm({ cinemas, cinemaId, onCinemaChange, group, onGroupC
 
             <label className="grid gap-2.5 mt-5 text-[#777b81] text-[8px] tracking-[1.5px] font-semibold">
                 CINEMA
-                <select
-                    value={cinemaId}
-                    onChange={(e) => onCinemaChange(Number(e.target.value))}
-                    className="appearance-none w-full h-10.5 px-3 border border-[#34373c] bg-[#17191c] text-white outline-none focus:border-brand-red cursor-pointer"
-                >
-                    {cinemas.map((c) => (
-                        <option key={c.id} value={c.id} className="bg-[#17191c] text-white">
-                            {c.name}
-                        </option>
-                    ))}
-                </select>
+                <Controller
+                    name="cinemaId"
+                    control={control}
+                    render={({ field }) => (
+                        <select
+                            value={field.value}
+                            onChange={(e) => {
+                                const id = Number(e.target.value);
+                                field.onChange(id);
+                                onCinemaChange(id);
+                            }}
+                            className="appearance-none w-full h-10.5 px-3 border border-[#34373c] bg-[#17191c] text-white outline-none focus:border-brand-red cursor-pointer"
+                        >
+                            {cinemas.map((c) => (
+                                <option key={c.id} value={c.id} className="bg-[#17191c] text-white">
+                                    {c.name}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                />
+                {errors.cinemaId && (
+                    <span className="text-brand-red text-[10px] tracking-normal font-normal">{errors.cinemaId.message}</span>
+                )}
             </label>
 
             <label className="grid gap-2.5 mt-5 text-[#777b81] text-[8px] tracking-[1.5px] font-semibold">
                 GROUP SIZE
-                <GroupSizeCounter value={group} onChange={onGroupChange} />
+                <Controller
+                    name="groupSize"
+                    control={control}
+                    render={({ field }) => (
+                        <GroupSizeCounter
+                            value={field.value}
+                            onChange={(val) => {
+                                field.onChange(val);
+                                onGroupChange(val);
+                            }}
+                        />
+                    )}
+                />
+                {errors.groupSize && (
+                    <span className="text-brand-red text-[10px] tracking-normal font-normal">{errors.groupSize.message}</span>
+                )}
             </label>
 
             <div className="flex items-center justify-between mt-5">
@@ -59,9 +130,9 @@ export function BookingForm({ cinemas, cinemaId, onCinemaChange, group, onGroupC
                 </div>
             </div>
 
-            <PrimaryButton className="w-full mt-7.5" onClick={onCalculate}>
+            <PrimaryButton type="submit" className="w-full mt-7.5">
                 CALCULATE BEST BUNDLE <Icon name="chevron" />
             </PrimaryButton>
-        </section>
+        </form>
     );
 }

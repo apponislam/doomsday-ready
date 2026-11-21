@@ -24,10 +24,10 @@ const canReach = (startId: string, targetId: string, graph: Map<string, string[]
 /**
  * Validates that adding candidatePrereqs to movieId does not form a circular dependency.
  */
-const validateNoCircularDependency = async (movieId: string, candidatePrereqIds: string[]) => {
+const validateNoCircularDependency = async (movieId: string, candidatePrereqIds: (string | number)[]) => {
     // 1. Direct self-dependency
     for (const pid of candidatePrereqIds) {
-        if (pid === movieId) {
+        if (String(pid) === String(movieId)) {
             throw new ApiError(httpStatus.CONFLICT, "409 CIRCULAR_DEPENDENCY: A movie cannot depend on itself directly.");
         }
     }
@@ -38,16 +38,42 @@ const validateNoCircularDependency = async (movieId: string, candidatePrereqIds:
 
     for (const m of allMovies) {
         const idStr = m._id.toString();
-        const prereqs = (m.prerequisites || []).map((p: any) => p.toString());
+        const numIdStr = m.id !== undefined ? String(m.id) : null;
+        const prereqs = (m.prerequisites || []).map((p: any) => String(p));
         graph.set(idStr, prereqs);
+        if (numIdStr) graph.set(numIdStr, prereqs);
     }
 
     for (const candidateId of candidatePrereqIds) {
+        const cStr = String(candidateId);
         // If candidateId can already reach movieId, then making movieId depend on candidateId forms a cycle!
-        if (canReach(candidateId, movieId, graph, new Set())) {
+        if (canReach(cStr, movieId, graph, new Set())) {
             throw new ApiError(httpStatus.CONFLICT, "409 CIRCULAR_DEPENDENCY: Circular dependency detected in movie prerequisites.");
         }
     }
+};
+
+/**
+ * Normalizes any legacy ObjectId prerequisites to clean numeric movie IDs.
+ */
+const formatMoviePrerequisites = async (movies: any[]) => {
+    const all = await MovieModel.find({}, { id: 1, _id: 1 });
+    const idMap = new Map<string, number>();
+    for (const m of all) {
+        if (m.id !== undefined && m._id) {
+            idMap.set(m._id.toString(), m.id);
+        }
+    }
+    return movies.map((m) => {
+        const obj = typeof m.toObject === "function" ? m.toObject() : { ...m };
+        if (Array.isArray(obj.prerequisites)) {
+            obj.prerequisites = obj.prerequisites.map((p: any) => {
+                const str = String(p);
+                return idMap.has(str) ? idMap.get(str)! : p;
+            });
+        }
+        return obj;
+    });
 };
 
 /**
@@ -79,7 +105,7 @@ const createMovie = async (payload: IMovie) => {
         payload.id = (lastMovie?.id ?? 0) + 1;
     }
 
-    // Convert any numeric or string prerequisite references to string IDs
+    // Convert any numeric or string prerequisite references to numeric sequence IDs
     const normalizedPrereqs: any[] = [];
     if (payload.prerequisites && payload.prerequisites.length > 0) {
         for (const p of payload.prerequisites) {
@@ -96,13 +122,14 @@ const createMovie = async (payload: IMovie) => {
                 throw new ApiError(httpStatus.CONFLICT, "409 CIRCULAR_DEPENDENCY: A movie cannot depend on itself directly.");
             }
 
-            normalizedPrereqs.push(prereqMovie._id);
+            normalizedPrereqs.push(prereqMovie.id !== undefined ? prereqMovie.id : prereqMovie._id);
         }
     }
     payload.prerequisites = normalizedPrereqs;
 
     const result = await MovieModel.create(payload);
-    return result;
+    const [formatted] = await formatMoviePrerequisites([result]);
+    return formatted;
 };
 
 const getAllMovies = async (query: Record<string, unknown> = {}) => {
@@ -116,7 +143,7 @@ const getAllMovies = async (query: Record<string, unknown> = {}) => {
     }
 
     const data = await MovieModel.find(filter).sort({ year: 1, id: 1 });
-    return data;
+    return formatMoviePrerequisites(data);
 };
 
 const getMovieById = async (id: string) => {
@@ -124,7 +151,8 @@ const getMovieById = async (id: string) => {
     if (!movie) {
         throw new ApiError(httpStatus.NOT_FOUND, "Movie not found.");
     }
-    return movie;
+    const [formatted] = await formatMoviePrerequisites([movie]);
+    return formatted;
 };
 
 const updateMovie = async (id: string, payload: Partial<IMovie>) => {
@@ -151,11 +179,14 @@ const updateMovie = async (id: string, payload: Partial<IMovie>) => {
             if (!prereqMovie) {
                 throw new ApiError(httpStatus.BAD_REQUEST, `Prerequisite movie "${p}" not found.`);
             }
-            normalizedPrereqs.push(prereqMovie._id);
+            normalizedPrereqs.push(prereqMovie.id !== undefined ? prereqMovie.id : prereqMovie._id);
         }
 
         const candidateIdStrs = normalizedPrereqs.map((p) => p.toString());
         await validateNoCircularDependency(movieObjectIdStr, candidateIdStrs);
+        if (movie.id !== undefined) {
+            await validateNoCircularDependency(String(movie.id), candidateIdStrs);
+        }
         payload.prerequisites = normalizedPrereqs;
     }
 
@@ -164,7 +195,8 @@ const updateMovie = async (id: string, payload: Partial<IMovie>) => {
         runValidators: true,
     });
 
-    return result;
+    const [formatted] = await formatMoviePrerequisites([result]);
+    return formatted;
 };
 
 const getRewatchOrder = async (id: string) => {

@@ -46,11 +46,16 @@ export function MovieRow({ movie, index, allMovies, onToggleWatched, onEdit }: M
 
             <div className="flex gap-1.5 flex-wrap max-md:[grid-area:pre] max-md:pt-2.5">
                 {movie.prerequisites.length ? (
-                    movie.prerequisites.map((id) => (
-                        <span key={id} className="px-1.5 py-1 text-[#a4a7ad] bg-[#202227] border border-[#303238] text-[8px] font-medium">
-                            {allMovies.find((m) => m.id === id)?.title.replace("Captain America: ", "") ?? `ID ${id}`}
-                        </span>
-                    ))
+                    movie.prerequisites.map((id) => {
+                        const matched = allMovies.find(
+                            (m) => m.id === id || String(m.id) === String(id) || String((m as any)._id) === String(id)
+                        );
+                        return (
+                            <span key={String(id)} className="px-1.5 py-1 text-[#a4a7ad] bg-[#202227] border border-[#303238] text-[8px] font-medium">
+                                {matched ? matched.title.replace("Captain America: ", "") : `ID ${id}`}
+                            </span>
+                        );
+                    })
                 ) : (
                     <em className="text-[#55595f] text-[10px] not-italic">None</em>
                 )}

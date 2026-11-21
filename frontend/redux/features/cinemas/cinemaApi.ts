@@ -11,7 +11,11 @@ export interface BookingQuoteData {
         bundles: number[];
     };
     groupSize: number;
-    bundles: {
+    totalBundles?: number;
+    picks?: number[];
+    breakdown?: Record<string | number, number>;
+    formatted?: string;
+    bundles?: {
         count: number;
         picks: number[];
         breakdown: string;

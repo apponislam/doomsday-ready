@@ -28,7 +28,7 @@ export interface CreateMoviePayload {
     title: string;
     year: number;
     runtime: number;
-    prerequisites: number[];
+    prerequisites: (number | string)[];
     watched?: boolean;
 }
 
@@ -99,6 +99,25 @@ export const movieApi = baseApi
                     method: "PATCH",
                     body: data,
                 }),
+                async onQueryStarted({ id, data }, { dispatch, queryFulfilled }) {
+                    const patchResult = dispatch(
+                        movieApi.util.updateQueryData("getMovies", undefined, (draft) => {
+                            if (draft?.data) {
+                                const target = draft.data.find(
+                                    (m) => m.id === id || String(m.id) === String(id) || String((m as any)._id) === String(id)
+                                );
+                                if (target) {
+                                    Object.assign(target, data);
+                                }
+                            }
+                        })
+                    );
+                    try {
+                        await queryFulfilled;
+                    } catch {
+                        patchResult.undo();
+                    }
+                },
                 invalidatesTags: (_result, _error, { id }) => [
                     { type: "Movie", id },
                     { type: "Movie", id: "LIST" },

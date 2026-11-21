@@ -5,6 +5,7 @@ import app from "./app";
 import mongoose from "mongoose";
 import http from "http";
 import config from "./app/config";
+import { seedInitialData } from "./app/db/seed";
 
 let server: Server;
 
@@ -13,6 +14,7 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 async function main() {
     try {
         await mongoose.connect(config.mongodb_url as string);
+        await seedInitialData();
         server = http.createServer(app);
 
         server.listen(Number(config.port), config.ip, () => {

@@ -1,11 +1,12 @@
 export type View = "movies" | "plan" | "booking";
 
 export type Movie = {
+    _id?: string;
     id: number;
     title: string;
     year: number;
     runtime: number;
-    prerequisites: number[];
+    prerequisites: (number | string)[];
     watched: boolean;
 };
 
