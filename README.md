@@ -47,45 +47,101 @@
 
 ## 📊 Data Model & Architecture (Bonus)
 
+### 1. High-Level System Architecture
+
 ```mermaid
-classDiagram
-    direction LR
+flowchart TD
+    subgraph Client["Frontend Layer (Next.js 16 + React 19)"]
+        UI["Tailwind CSS Dark Theme UI"]
+        RTK["Redux Toolkit Query & Context"]
+        Views["Movies Archive · Rewatch Plan · Watch Party Booking"]
+        UI --> Views
+        Views <--> RTK
+    end
 
-    class Movie {
-        +ObjectId _id
-        +Number id
-        +String title (unique)
-        +Number year (1900-2100)
-        +Number runtime (1-300 min)
-        +Array~ObjectId|Number~ prerequisites
-        +Boolean watched
-        +Date createdAt
-        +Date updatedAt
-    }
+    subgraph Server["Backend Layer (Node.js 24 + Express + TypeScript)"]
+        Router["Express Router (/api)"]
+        Validation["Zod Request Validation"]
+        Controllers["Movie & Cinema Controllers"]
 
-    class Cinema {
-        +ObjectId _id
-        +Number id
-        +String name (unique)
-        +Array~Number~ bundles (1-10 sizes, 1-500 seats)
-        +Date createdAt
-        +Date updatedAt
-    }
+        subgraph Engines["Algorithmic Core"]
+            DAG["DFS Cycle Detection & Topological Sort Engine"]
+            DP["Unbounded Knapsack DP Solver (Fewest Bundles)"]
+        end
 
-    Movie "1" --> "0..*" Movie : prerequisites (Directed Acyclic Graph)
+        Services["Service Layer (movie.services & cinema.services)"]
+
+        Router --> Validation --> Controllers --> Services
+        Services <--> DAG
+        Services <--> DP
+    end
+
+    subgraph Database["Data Layer (MongoDB 8)"]
+        MovieCol[("Movies Collection<br/>• Unique Case-Insensitive Title<br/>• Multikey Prerequisites Index<br/>• Watched + Year + ID Compound")]
+        CinemaCol[("Cinemas Collection<br/>• Unique Case-Insensitive Name<br/>• Multikey Bundles Index<br/>• ID + CreatedAt Compound")]
+    end
+
+    RTK -- "HTTP REST JSON (Port 5000)" --> Router
+    Services <--> MovieCol
+    Services <--> CinemaCol
 ```
 
-### Entity Schema Details
+### 2. Entity-Relationship Data Model
 
-- **Movie Schema**:
-    - `title`: String, required, trimmed, unique index.
-    - `year`: Number, required, bounds: 1900–2100.
-    - `runtime`: Number, required, bounds: 1–300 minutes.
-    - `prerequisites`: Array of references to earlier `Movie` records.
-    - `watched`: Boolean, default `false`.
-- **Cinema Schema**:
-    - `name`: String, required, trimmed, unique index.
-    - `bundles`: Array of Numbers, required, length 1–10, item values 1–500.
+```mermaid
+erDiagram
+    MOVIE ||--o{ MOVIE : "requires (DAG prerequisite)"
+    MOVIE {
+        ObjectId _id PK "Unique MongoDB Object ID"
+        Number id UK "Custom numeric identifier"
+        String title UK "Unique title (case-insensitive)"
+        Number year "Release year (1900 - 2100)"
+        Number runtime "Duration in minutes (1 - 300)"
+        Array prerequisites FK "References to ancestor Movie IDs"
+        Boolean watched "Watched status (default: false)"
+        Date createdAt "Timestamp"
+        Date updatedAt "Timestamp"
+    }
+
+    CINEMA {
+        ObjectId _id PK "Unique MongoDB Object ID"
+        Number id UK "Custom numeric identifier"
+        String name UK "Unique cinema name"
+        Array bundles "1 to 10 bundle sizes (1 - 500 seats each)"
+        Date createdAt "Timestamp"
+        Date updatedAt "Timestamp"
+    }
+```
+
+### 3. Database Indexes & Performance Optimization
+
+Both collections utilize **deep indexing** to guarantee $O(1)$ and $O(\log N)$ performance under load:
+
+| Collection | Index | Type | Optimized Query Pattern |
+| :--- | :--- | :--- | :--- |
+| **`Movie`** | `{ id: 1 }` | `unique, sparse` | Fast numeric ID lookups (`/api/movies/:id`). |
+| **`Movie`** | `{ title: 1 }` | `unique, collation` | Case-insensitive title uniqueness enforcement (`"Iron Man"` vs `"iron man"`). |
+| **`Movie`** | `{ title: "text" }` | Full-Text Index | High-speed keyword text searching across title archive. |
+| **`Movie`** | `{ watched: 1, year: 1, id: 1 }` | Compound Index | Filtered archive browsing (`/api/movies?watched=true`) with zero in-memory sorting. |
+| **`Movie`** | `{ year: 1, id: 1 }` | Compound Index | Default chronological timeline sorting (`.sort({ year: 1, id: 1 })`). |
+| **`Movie`** | `{ prerequisites: 1 }` | Multikey Index | Traversal of parent-child dependencies and circular dependency checks (`canReach`). |
+| **`Movie`** | `{ watched: 1, runtime: 1 }` | Compound Index | Aggregation and instant computation of remaining unwatched minutes. |
+| **`Cinema`** | `{ id: 1 }` | `unique, sparse` | Fast numeric cinema ID lookups (`/api/cinemas/:id`). |
+| **`Cinema`** | `{ name: 1 }` | `unique, collation` | Case-insensitive cinema name uniqueness. |
+| **`Cinema`** | `{ bundles: 1 }` | Multikey Index | Rapid filtering for cinemas matching specific party bundle capacities. |
+| **`Cinema`** | `{ id: 1, createdAt: 1 }` | Compound Index | Covers default cinema catalog listing (`.sort({ id: 1, createdAt: 1 })`). |
+| **`Cinema`** | `{ createdAt: -1 }` | Single Field | Chronological audit and recency ordering. |
+
+### 4. Integrity & Architectural Invariants
+
+1. **DAG Prerequisite Invariant**:
+   - Every movie's `prerequisites` must form a valid **Directed Acyclic Graph (DAG)**.
+   - Self-dependencies (`A -> A`) and transitive cycles (`A -> B -> C -> A`) are detected via DFS reachability prior to write and rejected with HTTP `409 CIRCULAR_DEPENDENCY`.
+2. **Exact Fit Bundle Invariant**:
+   - Cinema party booking calculates the absolute minimum bundle count using dynamic programming coin-change with **zero empty seats**. If no exact combination sums to the requested group size, the system returns `{ possible: false, message: "Not possible" }`.
+3. **Decoupled Architecture**:
+   - The frontend communicates with the backend solely via RESTful JSON contracts (`/api/movies`, `/api/cinemas`).
+   - Redux Toolkit Query and typed React Context provide caching, background revalidation, and optimistic updates.
 
 ---
 
