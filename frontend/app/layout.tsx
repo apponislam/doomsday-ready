@@ -76,13 +76,15 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-            <body>
+            <body className="bg-background text-foreground min-h-screen min-w-[320px] font-sans">
                 <MovieProvider>
-                    <div className="app-shell">
+                    <div className="min-h-screen bg-[radial-gradient(circle_at_90%_0%,rgba(131,24,22,0.12),transparent_30%),var(--color-background)]">
                         <Sidebar />
-                        <main>
+                        <main className="min-h-screen md:ml-61 max-lg:md:ml-19.5 max-md:pb-17">
                             <Header />
-                            <div className="page-content">{children}</div>
+                            <div className="p-[44px_clamp(28px,5vw,76px)_70px] max-md:p-[24px_16px_calc(76px+env(safe-area-inset-bottom,0px))] max-w-[1540px] mx-auto">
+                                {children}
+                            </div>
                         </main>
                         <MobileNav />
                     </div>

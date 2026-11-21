@@ -25,7 +25,7 @@ export function BookingView() {
     };
 
     return (
-        <div className="booking-layout">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(330px,0.85fr)_minmax(420px,1.15fr)] border border-[#292c30] min-h-162.5 max-md:min-h-0">
             <BookingForm cinemas={cinemas} cinemaId={cinemaId} onCinemaChange={handleCinemaChange} group={group} onGroupChange={handleGroupChange} onCalculate={() => setQuoted(true)} />
             <QuotePanel cinema={cinema} group={group} quoted={quoted} quote={quote} />
         </div>

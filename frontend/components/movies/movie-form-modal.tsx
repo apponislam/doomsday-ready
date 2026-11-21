@@ -74,51 +74,43 @@ export function MovieFormModal({
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 grid place-items-center p-5 bg-[#030405]/80 backdrop-blur-md" onMouseDown={onClose}>
       <form
-        className="modal"
+        className="w-full max-w-135 max-h-[90vh] overflow-y-auto p-7 bg-[#15171a] border border-[#34373c] shadow-2xl"
         onSubmit={handleSubmit}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="modal-title">
-          <span>
+        <div className="flex gap-3.5 items-center mb-6">
+          <span className="w-9.5 h-9.5 grid place-items-center bg-brand-deep text-brand-red">
             <Icon name={isEditing ? 'edit' : 'plus'} />
           </span>
           <div>
-            <p>MOVIE ARCHIVE</p>
-            <h3>{isEditing ? 'Edit movie' : 'Add a new movie'}</h3>
+            <p className="text-brand-red text-[8px] tracking-[1.5px] font-semibold m-0 mb-1">MOVIE ARCHIVE</p>
+            <h3 className="font-condensed font-semibold text-[25px] text-white m-0">{isEditing ? 'Edit movie' : 'Add a new movie'}</h3>
           </div>
         </div>
 
         {error && (
           <div
-            style={{
-              padding: '10px 14px',
-              marginBottom: '16px',
-              backgroundColor: 'rgba(239, 62, 54, 0.15)',
-              border: '1px solid var(--red)',
-              borderRadius: '4px',
-              color: '#ff8a84',
-              fontSize: '11px',
-              lineHeight: '1.4',
-            }}
+            className="p-2.5 px-3.5 mb-4 bg-brand-red/15 border border-brand-red rounded text-[#ff8a84] text-[11px] leading-relaxed"
           >
             {error}
           </div>
         )}
 
-        <label>
+        <label className="grid gap-2 text-[#8a8e94] text-[9px] tracking-[1px] font-semibold">
           Movie title
           <input
             required
             name="title"
             defaultValue={editingMovie?.title}
             placeholder="e.g. Doctor Strange"
+            className="h-10.5 px-3 border border-[#34373c] bg-[#0f1113] text-white outline-none focus:border-brand-red text-[12px]"
           />
         </label>
 
-        <div className="field-row">
-          <label>
+        <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-3.5 my-4">
+          <label className="grid gap-2 text-[#8a8e94] text-[9px] tracking-[1px] font-semibold">
             Release year
             <input
               required
@@ -127,9 +119,10 @@ export function MovieFormModal({
               min="1900"
               max="2100"
               defaultValue={editingMovie?.year ?? 2024}
+              className="h-10.5 px-3 border border-[#34373c] bg-[#0f1113] text-white outline-none focus:border-brand-red text-[12px]"
             />
           </label>
-          <label>
+          <label className="grid gap-2 text-[#8a8e94] text-[9px] tracking-[1px] font-semibold">
             Runtime (minutes)
             <input
               required
@@ -138,13 +131,14 @@ export function MovieFormModal({
               min="1"
               max="300"
               defaultValue={editingMovie?.runtime ?? 120}
+              className="h-10.5 px-3 border border-[#34373c] bg-[#0f1113] text-white outline-none focus:border-brand-red text-[12px]"
             />
           </label>
         </div>
 
-        <fieldset>
-          <legend>Watch these first</legend>
-          <div className="prereq-options">
+        <fieldset className="p-0 border-0">
+          <legend className="text-[#8a8e94] text-[9px] tracking-[1px] font-semibold mb-2.5">Watch these first</legend>
+          <div className="max-h-36.25 overflow-y-auto grid grid-cols-2 max-sm:grid-cols-1 gap-1.5">
             {allMovies
               .filter((m) => m.id !== editingMovie?.id)
               .map((m) => {
@@ -154,10 +148,9 @@ export function MovieFormModal({
                 return (
                   <label
                     key={m.id}
-                    style={{
-                      opacity: createsCycle ? 0.45 : 1,
-                      cursor: createsCycle ? 'not-allowed' : 'pointer',
-                    }}
+                    className={`flex items-center gap-2 text-[#a9acb0] text-[10px] p-2 bg-[#111315] cursor-pointer ${
+                      createsCycle ? 'opacity-45 cursor-not-allowed' : 'hover:bg-[#181a1d]'
+                    }`}
                     title={
                       createsCycle
                         ? `Cannot select: causes circular dependency (this film depends on ${editingMovie.title})`
@@ -170,13 +163,14 @@ export function MovieFormModal({
                       value={m.id}
                       disabled={Boolean(createsCycle)}
                       defaultChecked={editingMovie?.prerequisites.includes(m.id)}
+                      className="peer hidden"
                     />
-                    <span>
+                    <span className="w-4 h-4 grid place-items-center border border-[#3e4247] text-transparent peer-checked:bg-brand-dark peer-checked:border-brand-red peer-checked:text-white shrink-0">
                       <Icon name="check" size={12} />
                     </span>
-                    {m.title}
+                    <span className="truncate">{m.title}</span>
                     {createsCycle && (
-                      <em style={{ fontSize: '9px', color: 'var(--red)', marginLeft: 'auto' }}>
+                      <em className="text-[9px] text-brand-red ml-auto not-italic font-semibold">
                         cycle
                       </em>
                     )}
@@ -186,8 +180,12 @@ export function MovieFormModal({
           </div>
         </fieldset>
 
-        <div className="modal-actions">
-          <button type="button" className="ghost-button" onClick={onClose}>
+        <div className="flex justify-end gap-2.5 mt-6">
+          <button
+            type="button"
+            className="px-4 min-h-10.5 border border-[#35383d] bg-transparent text-[9px] tracking-[1px] font-semibold cursor-pointer text-white hover:border-[#666] transition-colors"
+            onClick={onClose}
+          >
             CANCEL
           </button>
           <PrimaryButton type="submit">

@@ -36,24 +36,26 @@ export function PremiereCountdown() {
     }, []);
 
     return (
-        <div className="premiere-card">
-            <StatusDot />
-            <p>PREMIERE COUNTDOWN</p>
-            <strong>DEC 18, 2026</strong>
-            <div className="count-row">
-                <span>
-                    <b>{timeLeft.days}</b>
-                    <small>DAYS</small>
+        <div className="mt-auto p-4 border border-[#2a2c30] bg-linear-to-br from-[#181719] to-[#101113] max-lg:hidden">
+            <div className="flex items-center mb-2">
+                <StatusDot />
+                <p className="text-[#74777c] text-[8px] tracking-[1.6px] font-semibold m-0">PREMIERE COUNTDOWN</p>
+            </div>
+            <strong className="block font-condensed font-semibold text-[17px] tracking-[1px] text-white">DEC 18, 2026</strong>
+            <div className="flex items-center justify-between mt-3.5">
+                <span className="text-center">
+                    <b className="block font-condensed font-semibold text-[20px] text-white leading-tight">{timeLeft.days}</b>
+                    <small className="block text-[#686b70] text-[7px] tracking-[1.2px] mt-0.5">DAYS</small>
                 </span>
-                <i />
-                <span>
-                    <b>{timeLeft.hours}</b>
-                    <small>HRS</small>
+                <i className="h-5 w-px bg-[#303237] not-italic block" />
+                <span className="text-center">
+                    <b className="block font-condensed font-semibold text-[20px] text-white leading-tight">{timeLeft.hours}</b>
+                    <small className="block text-[#686b70] text-[7px] tracking-[1.2px] mt-0.5">HRS</small>
                 </span>
-                <i />
-                <span>
-                    <b>{timeLeft.minutes}</b>
-                    <small>MIN</small>
+                <i className="h-5 w-px bg-[#303237] not-italic block" />
+                <span className="text-center">
+                    <b className="block font-condensed font-semibold text-[20px] text-white leading-tight">{timeLeft.minutes}</b>
+                    <small className="block text-[#686b70] text-[7px] tracking-[1.2px] mt-0.5">MIN</small>
                 </span>
             </div>
         </div>

@@ -76,25 +76,25 @@ export function MoviesView({ movies: propsMovies, setMovies: propsSetMovies }: M
 
     return (
         <>
-            <div className="section-lead">
-                <div>
-                    <p>
+            <div className="flex justify-between items-end max-md:items-center max-md:gap-3 mb-2">
+                <div className="min-w-0">
+                    <p className="text-brand-red text-[9px] font-bold tracking-[1.8px] mb-1 uppercase">
                         {watchedCount} OF {movies.length} WATCHED
                     </p>
-                    <h2>Your cinematic timeline</h2>
+                    <h2 className="font-condensed font-semibold text-[clamp(20px,3vw,38px)] leading-tight text-white tracking-[-0.4px]">Your cinematic timeline</h2>
                 </div>
-                <PrimaryButton onClick={() => setModal("add")}>
+                <PrimaryButton className="shrink-0 max-md:h-9.5 max-md:min-h-9.5 max-md:px-3.5 max-md:text-[11px]" onClick={() => setModal("add")}>
                     <Icon name="plus" /> <span className="btn-text">ADD MOVIE</span>
                 </PrimaryButton>
             </div>
 
-            <div className="toolbar">
+            <div className="flex items-center justify-between my-7 mb-3.5">
                 <MovieSearch value={search} onChange={setSearch} />
                 <MovieRuntimeSummary totalMinutes={totalRuntime} />
             </div>
 
-            <div className="movie-list">
-                <div className="table-head">
+            <div className="border border-[#25282c] bg-[#121417]/75 max-md:border-0 max-md:bg-transparent">
+                <div className="grid items-center px-5 min-h-10.75 text-[#64686e] border-b border-[#292c30] text-[8px] tracking-[1.3px] font-semibold max-md:hidden grid-cols-[62px_minmax(240px,1.5fr)_100px_110px_minmax(180px,1fr)_42px] max-lg:grid-cols-[50px_minmax(210px,1.5fr)_80px_90px_1fr_36px]">
                     <span>STATUS</span>
                     <span>MOVIE</span>
                     <span>RELEASE</span>
