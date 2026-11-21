@@ -16,13 +16,15 @@ const createMovie = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllMovies = catchAsync(async (req: Request, res: Response) => {
-    const result = await movieServices.getAllMovies(req.query);
+    const { data, meta, stats } = await movieServices.getAllMovies(req.query);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: "Movies retrieved successfully.",
-        data: result,
+        meta,
+        data,
+        stats,
     });
 });
 

@@ -8,9 +8,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 const bookingFormSchema = z.object({
-    cinemaId: z.number().min(1, "Please select a cinema"),
+    cinemaId: z.number({ error: "Please select a cinema" }).min(1, "Please select a cinema"),
     groupSize: z
-        .number()
+        .number({ error: "Please enter group size (minimum 1 person)" })
         .int("Group size must be an integer")
         .min(1, "Group size must be at least 1 person")
         .max(1000, "Group size cannot exceed 1,000 people"),

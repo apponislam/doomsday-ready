@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Movie } from '@/types';
 import { useMovies } from '@/hooks/use-movies';
 import { getRewatchOrder } from '@/utils/rewatch-order';
@@ -17,6 +18,10 @@ interface PlanViewProps {
 }
 
 export function PlanView({ movies: propsMovies, setMovies: propsSetMovies }: PlanViewProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const {
     movies: apiMovies,
     isLoading,
@@ -24,22 +29,73 @@ export function PlanView({ movies: propsMovies, setMovies: propsSetMovies }: Pla
     error,
     refetch,
     toggleWatched: apiToggleWatched,
-  } = useMovies();
+  } = useMovies({ all: true });
 
   const movies = propsMovies ?? apiMovies;
   const toggleWatched = apiToggleWatched;
 
-  const [target, setTarget] = useState<number>(8);
+  const targetQuery = searchParams.get('target') || searchParams.get('movie');
 
-  // Auto-select valid target when movies load
+  // Initialize target: check query param first, default to 8
+  const [target, setTarget] = useState<number>(() => {
+    if (targetQuery) {
+      const parsed = parseInt(targetQuery, 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    return 8;
+  });
+
+  // Sync state from URL query parameter if URL changes
+  useEffect(() => {
+    if (!targetQuery || movies.length === 0) return;
+
+    // 1. Try numeric ID
+    const numericId = parseInt(targetQuery, 10);
+    if (!isNaN(numericId)) {
+      const exists = movies.some((m) => m.id === numericId);
+      if (exists && numericId !== target) {
+        setTarget(numericId);
+      }
+      return;
+    }
+
+    // 2. Try normalized title/slug match
+    const normalizedQuery = targetQuery.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const matched = movies.find(
+      (m) => m.title.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedQuery
+    );
+    if (matched && matched.id !== target) {
+      setTarget(matched.id);
+    }
+  }, [targetQuery, movies, target]);
+
+  // Ensure target is valid once movies load
   useEffect(() => {
     if (movies.length > 0) {
-      const hasDefaultTarget = movies.some((m) => m.id === 8);
-      if (!hasDefaultTarget) {
-        setTarget(movies[movies.length - 1].id);
+      const targetValid = movies.some((m) => m.id === target);
+      if (!targetValid) {
+        const doomsday = movies.find((m) => m.id === 8);
+        const fallbackId = doomsday ? doomsday.id : movies[movies.length - 1].id;
+        setTarget(fallbackId);
       }
     }
-  }, [movies]);
+  }, [movies, target]);
+
+  // Handle user changing target: update local state AND query param in URL
+  const handleTargetChange = useCallback(
+    (newTargetId: number) => {
+      setTarget(newTargetId);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('target', String(newTargetId));
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [searchParams, pathname, router]
+  );
+
+  const targetMovie = useMemo(
+    () => movies.find((m) => m.id === target),
+    [movies, target]
+  );
 
   const order = useMemo(() => getRewatchOrder(target, movies), [target, movies]);
   const watched = order.filter((m) => m.watched).length;
@@ -83,7 +139,7 @@ export function PlanView({ movies: propsMovies, setMovies: propsSetMovies }: Pla
     <>
       <PlanHero
         targetId={target}
-        onTargetChange={setTarget}
+        onTargetChange={handleTargetChange}
         movies={movies}
         percent={percent}
       />
@@ -93,7 +149,11 @@ export function PlanView({ movies: propsMovies, setMovies: propsSetMovies }: Pla
         remainingMinutes={remaining}
         percent={percent}
       />
-      <PlanTimeline order={order} onToggleWatched={handleToggleWatched} />
+      <PlanTimeline
+        order={order}
+        targetMovie={targetMovie}
+        onToggleWatched={handleToggleWatched}
+      />
     </>
   );
 }

@@ -2,15 +2,18 @@ import {
     useGetMoviesQuery,
     useCreateMovieMutation,
     useUpdateMovieMutation,
+    GetMoviesParams,
 } from "@/redux/features/movies/movieApi";
 import { Movie } from "@/types";
 
-export function useMovies() {
-    const { data: response, isLoading, isFetching, isError, error, refetch } = useGetMoviesQuery();
+export function useMovies(params?: GetMoviesParams) {
+    const { data: response, isLoading, isFetching, isError, error, refetch } = useGetMoviesQuery(params);
     const [updateMovieMutation, { isLoading: isUpdating }] = useUpdateMovieMutation();
     const [createMovieMutation, { isLoading: isCreating }] = useCreateMovieMutation();
 
     const movies: Movie[] = response?.data ?? [];
+    const stats = response?.stats;
+    const meta = response?.meta;
 
     const toggleWatched = async (id: number) => {
         const target = movies.find((m) => m.id === id);
@@ -48,6 +51,8 @@ export function useMovies() {
 
     return {
         movies,
+        stats,
+        meta,
         isLoading,
         isFetching,
         isError,

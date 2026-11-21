@@ -1,5 +1,12 @@
 export type View = "movies" | "plan" | "booking";
 
+export type PrerequisiteDetail = {
+    id: number;
+    title: string;
+    year: number;
+    runtime?: number;
+};
+
 export type Movie = {
     _id?: string;
     id: number;
@@ -7,6 +14,7 @@ export type Movie = {
     year: number;
     runtime: number;
     prerequisites: (number | string)[];
+    prerequisiteDetails?: PrerequisiteDetail[];
     watched: boolean;
 };
 

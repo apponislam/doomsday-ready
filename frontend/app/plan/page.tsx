@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import React, { Suspense } from 'react';
 import { PlanView } from '@/components/plan/plan-view';
+import { PlanSkeleton } from '@/components/ui/loading-skeleton';
 
 export const metadata: Metadata = {
   title: 'Rewatch Plan — Mission Briefing',
@@ -13,5 +15,9 @@ export const metadata: Metadata = {
 };
 
 export default function PlanPage() {
-  return <PlanView />;
+  return (
+    <Suspense fallback={<PlanSkeleton />}>
+      <PlanView />
+    </Suspense>
+  );
 }

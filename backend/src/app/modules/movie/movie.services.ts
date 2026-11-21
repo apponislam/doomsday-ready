@@ -5,24 +5,8 @@ import { IMovie } from "./movie.interface";
 import { MovieModel } from "./movie.model";
 
 /**
- * Checks if targetId can be reached from startId through prerequisite links.
- */
-const canReach = (startId: string, targetId: string, graph: Map<string, string[]>, visited: Set<string> = new Set()): boolean => {
-    if (startId === targetId) return true;
-    if (visited.has(startId)) return false;
-    visited.add(startId);
-
-    const neighbors = graph.get(startId) || [];
-    for (const neighbor of neighbors) {
-        if (canReach(neighbor, targetId, graph, visited)) {
-            return true;
-        }
-    }
-    return false;
-};
-
-/**
  * Validates that adding candidatePrereqs to movieId does not form a circular dependency.
+ * Uses BFS upstream graph traversal to avoid loading the entire database into memory.
  */
 const validateNoCircularDependency = async (movieId: string, candidatePrereqIds: (string | number)[]) => {
     // 1. Direct self-dependency
@@ -32,46 +16,131 @@ const validateNoCircularDependency = async (movieId: string, candidatePrereqIds:
         }
     }
 
-    // 2. Transitive / indirect circular dependency
-    const allMovies = await MovieModel.find({});
-    const graph = new Map<string, string[]>();
+    // 2. Transitive / indirect circular dependency check using targeted BFS
+    const visited = new Set<string>();
+    let queue: any[] = [...candidatePrereqIds];
 
-    for (const m of allMovies) {
-        const idStr = m._id.toString();
-        const numIdStr = m.id !== undefined ? String(m.id) : null;
-        const prereqs = (m.prerequisites || []).map((p: any) => String(p));
-        graph.set(idStr, prereqs);
-        if (numIdStr) graph.set(numIdStr, prereqs);
-    }
+    while (queue.length > 0) {
+        const currentBatch = queue.splice(0, 50);
+        const toLookup: any[] = [];
 
-    for (const candidateId of candidatePrereqIds) {
-        const cStr = String(candidateId);
-        // If candidateId can already reach movieId, then making movieId depend on candidateId forms a cycle!
-        if (canReach(cStr, movieId, graph, new Set())) {
-            throw new ApiError(httpStatus.CONFLICT, "409 CIRCULAR_DEPENDENCY: Circular dependency detected in movie prerequisites.");
+        for (const item of currentBatch) {
+            const str = String(item);
+            if (str === String(movieId)) {
+                throw new ApiError(httpStatus.CONFLICT, "409 CIRCULAR_DEPENDENCY: Circular dependency detected in movie prerequisites.");
+            }
+            if (!visited.has(str)) {
+                visited.add(str);
+                toLookup.push(item);
+            }
+        }
+
+        if (toLookup.length === 0) continue;
+
+        const objectIds = toLookup.filter((id) => Types.ObjectId.isValid(String(id)));
+        const numIds = toLookup.map((id) => Number(id)).filter((n) => !isNaN(n));
+
+        const conditions: any[] = [];
+        if (objectIds.length) conditions.push({ _id: { $in: objectIds } });
+        if (numIds.length) conditions.push({ id: { $in: numIds } });
+
+        if (conditions.length > 0) {
+            const foundMovies = await MovieModel.find({ $or: conditions }, { _id: 1, id: 1, prerequisites: 1 });
+            for (const m of foundMovies) {
+                if (m._id.toString() === String(movieId) || (m.id !== undefined && String(m.id) === String(movieId))) {
+                    throw new ApiError(httpStatus.CONFLICT, "409 CIRCULAR_DEPENDENCY: Circular dependency detected in movie prerequisites.");
+                }
+                if (Array.isArray(m.prerequisites)) {
+                    for (const p of m.prerequisites) {
+                        const pStr = String(p);
+                        if (!visited.has(pStr)) {
+                            queue.push(p);
+                        }
+                    }
+                }
+            }
         }
     }
 };
 
 /**
- * Normalizes any legacy ObjectId prerequisites to clean numeric movie IDs.
+ * Normalizes prerequisites to clean numeric movie IDs and populates prerequisiteDetails
+ * with title, year, and runtime so clients don't need to resolve references manually.
  */
 const formatMoviePrerequisites = async (movies: any[]) => {
-    const all = await MovieModel.find({}, { id: 1, _id: 1 });
-    const idMap = new Map<string, number>();
-    for (const m of all) {
-        if (m.id !== undefined && m._id) {
-            idMap.set(m._id.toString(), m.id);
+    const objectIdPrereqs = new Set<string>();
+    const numPrereqs = new Set<number>();
+
+    for (const m of movies) {
+        if (Array.isArray(m.prerequisites)) {
+            for (const p of m.prerequisites) {
+                const str = String(p);
+                if (Types.ObjectId.isValid(str)) {
+                    objectIdPrereqs.add(str);
+                }
+                const n = Number(p);
+                if (!isNaN(n)) {
+                    numPrereqs.add(n);
+                }
+            }
         }
     }
+
+    const conditions: any[] = [];
+    if (objectIdPrereqs.size > 0) {
+        conditions.push({ _id: { $in: Array.from(objectIdPrereqs) } });
+    }
+    if (numPrereqs.size > 0) {
+        conditions.push({ id: { $in: Array.from(numPrereqs) } });
+    }
+
+    const movieMap = new Map<string, { id: number; title: string; year: number; runtime?: number }>();
+    if (conditions.length > 0) {
+        const matching = await MovieModel.find(
+            { $or: conditions },
+            { id: 1, _id: 1, title: 1, year: 1, runtime: 1 }
+        );
+        for (const f of matching) {
+            const item = {
+                id: f.id ?? 0,
+                title: f.title,
+                year: f.year,
+                runtime: f.runtime,
+            };
+            if (f._id) movieMap.set(f._id.toString(), item);
+            if (f.id !== undefined) movieMap.set(String(f.id), item);
+        }
+    }
+
     return movies.map((m) => {
         const obj = typeof m.toObject === "function" ? m.toObject() : { ...m };
-        if (Array.isArray(obj.prerequisites)) {
-            obj.prerequisites = obj.prerequisites.map((p: any) => {
-                const str = String(p);
-                return idMap.has(str) ? idMap.get(str)! : p;
-            });
+        const rawPrereqs = Array.isArray(obj.prerequisites) ? obj.prerequisites : [];
+
+        const normalizedIds: number[] = [];
+        const details: { id: number; title: string; year: number; runtime?: number }[] = [];
+
+        for (const p of rawPrereqs) {
+            const str = String(p);
+            const matched = movieMap.get(str);
+            if (matched) {
+                normalizedIds.push(matched.id);
+                if (!details.some((d) => d.id === matched.id)) {
+                    details.push(matched);
+                }
+            } else {
+                const num = Number(p);
+                const finalId = !isNaN(num) ? num : p;
+                normalizedIds.push(finalId);
+                details.push({
+                    id: finalId,
+                    title: `Film ${finalId}`,
+                    year: 0,
+                });
+            }
         }
+
+        obj.prerequisites = normalizedIds;
+        obj.prerequisiteDetails = details;
         return obj;
     });
 };
@@ -136,14 +205,68 @@ const getAllMovies = async (query: Record<string, unknown> = {}) => {
     const filter: Record<string, any> = {};
 
     if (query.searchTerm) {
-        filter.title = { $regex: query.searchTerm, $options: "i" };
+        filter.title = { $regex: String(query.searchTerm).trim(), $options: "i" };
     }
-    if (query.watched !== undefined) {
+    if (query.watched !== undefined && query.watched !== "") {
         filter.watched = query.watched === "true" || query.watched === true;
     }
 
-    const data = await MovieModel.find(filter).sort({ year: 1, id: 1 });
-    return formatMoviePrerequisites(data);
+    const isAll = query.all === "true" || query.all === true || query.limit === "0";
+
+    // Fast count using index
+    const total = await MovieModel.countDocuments(filter);
+
+    // MongoDB aggregation calculates stats across full collection without loading into memory
+    const [statsAgg] = await MovieModel.aggregate([
+        {
+            $group: {
+                _id: null,
+                totalMovies: { $sum: 1 },
+                watchedCount: {
+                    $sum: { $cond: [{ $eq: ["$watched", true] }, 1, 0] },
+                },
+                totalRuntimeMinutes: { $sum: { $ifNull: ["$runtime", 0] } },
+            },
+        },
+    ]);
+
+    const totalMovies = statsAgg?.totalMovies ?? total;
+    const watchedCount = statsAgg?.watchedCount ?? 0;
+    const totalRuntimeMinutes = statsAgg?.totalRuntimeMinutes ?? 0;
+    const totalRuntimeHours = Math.floor(totalRuntimeMinutes / 60);
+    const remainingMinutes = totalRuntimeMinutes % 60;
+
+    let data: any[];
+    let page = 1;
+    let limit = isAll ? Math.min(total, 50000) : 10;
+
+    if (isAll) {
+        data = await MovieModel.find(filter).sort({ year: 1, id: 1 }).limit(limit);
+    } else {
+        page = Math.max(1, parseInt(String(query.page || 1), 10));
+        limit = Math.min(100, Math.max(1, parseInt(String(query.limit || 10), 10)));
+        const skip = (page - 1) * limit;
+        data = await MovieModel.find(filter).sort({ year: 1, id: 1 }).skip(skip).limit(limit);
+    }
+
+    const formattedData = await formatMoviePrerequisites(data);
+
+    return {
+        data: formattedData,
+        meta: {
+            page: isAll ? 1 : page,
+            limit: isAll ? total : limit,
+            total,
+            totalPage: isAll ? 1 : Math.ceil(total / limit) || 1,
+        },
+        stats: {
+            totalMovies,
+            watchedCount,
+            totalRuntimeMinutes,
+            totalRuntimeHours,
+            formattedRuntime: `${totalRuntimeHours}H ${remainingMinutes}M`,
+        },
+    };
 };
 
 const getMovieById = async (id: string) => {
@@ -205,19 +328,60 @@ const getRewatchOrder = async (id: string) => {
         throw new ApiError(httpStatus.NOT_FOUND, "Target movie not found.");
     }
 
-    const allMovies = await MovieModel.find({});
+    // BFS to fetch ONLY the prerequisite tree of targetMovie, not the whole collection
+    const targetIdStr = targetMovie._id.toString();
+    const targetNumId = targetMovie.id;
+
     const byId = new Map<string, IMovie>();
-    for (const m of allMovies) {
-        byId.set(m._id.toString(), m);
-        if (m.id !== undefined) {
-            byId.set(String(m.id), m);
+    byId.set(targetIdStr, targetMovie);
+    if (targetNumId !== undefined) byId.set(String(targetNumId), targetMovie);
+
+    let queue: any[] = [...(targetMovie.prerequisites || [])];
+    const visitedQueue = new Set<string>();
+
+    while (queue.length > 0) {
+        const batch = queue.splice(0, 50);
+        const toLookup: any[] = [];
+
+        for (const item of batch) {
+            const str = String(item);
+            if (!visitedQueue.has(str)) {
+                visitedQueue.add(str);
+                toLookup.push(item);
+            }
+        }
+
+        if (toLookup.length === 0) continue;
+
+        const objectIds = toLookup.filter((i) => Types.ObjectId.isValid(String(i)));
+        const numIds = toLookup.map((i) => Number(i)).filter((n) => !isNaN(n));
+
+        const conditions: any[] = [];
+        if (objectIds.length) conditions.push({ _id: { $in: objectIds } });
+        if (numIds.length) conditions.push({ id: { $in: numIds } });
+
+        if (conditions.length > 0) {
+            const foundMovies = await MovieModel.find({ $or: conditions });
+            for (const m of foundMovies) {
+                const sId = m._id.toString();
+                byId.set(sId, m);
+                if (m.id !== undefined) byId.set(String(m.id), m);
+
+                if (Array.isArray(m.prerequisites)) {
+                    for (const p of m.prerequisites) {
+                        const pStr = String(p);
+                        if (!visitedQueue.has(pStr)) {
+                            queue.push(p);
+                        }
+                    }
+                }
+            }
         }
     }
 
     const result: IMovie[] = [];
     const visited = new Set<string>();
     const inStack = new Set<string>();
-    const targetIdStr = targetMovie._id.toString();
 
     const visit = (currentIdStr: string) => {
         const currentMovie = byId.get(currentIdStr);

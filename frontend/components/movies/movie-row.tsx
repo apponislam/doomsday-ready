@@ -1,4 +1,5 @@
 import React, { CSSProperties } from "react";
+import Link from "next/link";
 import { Movie } from "@/types";
 import { Icon } from "@/components/icons/icon";
 
@@ -16,7 +17,7 @@ export function MovieRow({ movie, index, allMovies, onToggleWatched, onEdit }: M
 
     return (
         <div
-            className={`grid items-center px-5 max-md:px-2.5 min-h-18.5 max-md:min-h-26 border-b border-[#24262a] last:border-b-0 hover:bg-panel-soft transition-colors duration-150 max-md:grid-cols-[30px_1fr_32px] max-md:[grid-template-areas:'check_title_edit'_'check_meta_edit'_'pre_pre_pre'] max-md:p-3.5 max-md:mb-2 max-md:border max-md:border-[#282b30] max-md:bg-[#121417] grid-cols-[62px_minmax(240px,1.5fr)_100px_110px_minmax(180px,1fr)_42px] max-lg:grid-cols-[50px_minmax(210px,1.5fr)_80px_90px_1fr_36px]`}
+            className={`grid items-center px-5 max-md:px-2.5 min-h-18.5 max-md:min-h-26 border-b border-[#24262a] last:border-b-0 hover:bg-panel-soft transition-colors duration-150 max-md:grid-cols-[30px_1fr_64px] max-md:[grid-template-areas:'check_title_edit'_'check_meta_edit'_'pre_pre_pre'] max-md:p-3.5 max-md:mb-2 max-md:border max-md:border-[#282b30] max-md:bg-[#121417] grid-cols-[62px_minmax(240px,1.5fr)_100px_110px_minmax(180px,1fr)_72px] max-lg:grid-cols-[50px_minmax(210px,1.5fr)_80px_90px_1fr_68px]`}
             style={{ "--delay": `${index * 35}ms` } as CSSProperties}
         >
             <button
@@ -45,15 +46,31 @@ export function MovieRow({ movie, index, allMovies, onToggleWatched, onEdit }: M
             </span>
 
             <div className="flex gap-1.5 flex-wrap max-md:[grid-area:pre] max-md:pt-2.5">
-                {movie.prerequisites.length ? (
+                {movie.prerequisiteDetails && movie.prerequisiteDetails.length > 0 ? (
+                    movie.prerequisiteDetails.map((p) => (
+                        <Link
+                            key={String(p.id)}
+                            href={`/plan?target=${p.id}`}
+                            className="px-1.5 py-1 text-[#a4a7ad] hover:text-white bg-[#202227] hover:bg-[#2b1f23] border border-[#303238] hover:border-brand-red/60 text-[8px] font-medium transition-colors rounded"
+                            title={`View rewatch plan for ${p.title} (${p.year})`}
+                        >
+                            {p.title.replace("Captain America: ", "")}
+                        </Link>
+                    ))
+                ) : movie.prerequisites.length ? (
                     movie.prerequisites.map((id) => {
                         const matched = allMovies.find(
                             (m) => m.id === id || String(m.id) === String(id) || String((m as any)._id) === String(id)
                         );
                         return (
-                            <span key={String(id)} className="px-1.5 py-1 text-[#a4a7ad] bg-[#202227] border border-[#303238] text-[8px] font-medium">
+                            <Link
+                                key={String(id)}
+                                href={`/plan?target=${id}`}
+                                className="px-1.5 py-1 text-[#a4a7ad] hover:text-white bg-[#202227] hover:bg-[#2b1f23] border border-[#303238] hover:border-brand-red/60 text-[8px] font-medium transition-colors rounded"
+                                title={`View rewatch plan for ${matched ? matched.title : `ID ${id}`}`}
+                            >
                                 {matched ? matched.title.replace("Captain America: ", "") : `ID ${id}`}
-                            </span>
+                            </Link>
                         );
                     })
                 ) : (
@@ -61,13 +78,24 @@ export function MovieRow({ movie, index, allMovies, onToggleWatched, onEdit }: M
                 )}
             </div>
 
-            <button
-                className="w-7.5 h-7.5 grid place-items-center border-0 bg-transparent text-[#5d6167] cursor-pointer hover:text-white hover:bg-line transition-colors max-md:[grid-area:edit]"
-                onClick={() => onEdit(movie.id)}
-                aria-label={`Edit ${movie.title}`}
-            >
-                <Icon name="edit" size={16} />
-            </button>
+            <div className="flex items-center gap-1 max-md:[grid-area:edit] justify-end">
+                <Link
+                    href={`/plan?target=${movie.id}`}
+                    className="w-7.5 h-7.5 grid place-items-center border border-transparent hover:border-[#383b42] bg-transparent text-[#71757e] cursor-pointer hover:text-brand-red hover:bg-[#1a1c22] transition-colors rounded"
+                    title={`View rewatch plan for ${movie.title}`}
+                    aria-label={`View rewatch plan for ${movie.title}`}
+                >
+                    <Icon name="route" size={15} />
+                </Link>
+                <button
+                    className="w-7.5 h-7.5 grid place-items-center border border-transparent hover:border-[#383b42] bg-transparent text-[#71757e] cursor-pointer hover:text-white hover:bg-line transition-colors rounded"
+                    onClick={() => onEdit(movie.id)}
+                    aria-label={`Edit ${movie.title}`}
+                    title={`Edit ${movie.title}`}
+                >
+                    <Icon name="edit" size={15} />
+                </button>
+            </div>
         </div>
     );
 }

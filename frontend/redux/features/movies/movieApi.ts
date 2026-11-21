@@ -1,18 +1,36 @@
 import { baseApi } from "../../api/baseApi";
 import { Movie } from "@/types";
 
+export interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPage: number;
+}
+
+export interface MovieStats {
+    totalMovies: number;
+    watchedCount: number;
+    totalRuntimeMinutes: number;
+    totalRuntimeHours: number;
+    formattedRuntime: string;
+}
+
 export interface ApiResponse<T> {
     statusCode?: number;
     success: boolean;
     message?: string;
     data: T;
-    meta?: Record<string, any>;
-    stats?: Record<string, any>;
+    meta?: PaginationMeta;
+    stats?: MovieStats;
 }
 
 export interface GetMoviesParams {
+    page?: number;
+    limit?: number;
     searchTerm?: string;
     watched?: boolean;
+    all?: boolean;
 }
 
 export interface RewatchOrderData {
@@ -42,12 +60,15 @@ export const movieApi = baseApi
     .injectEndpoints({
         overrideExisting: true,
         endpoints: (builder) => ({
-            // GET /movies - List all movies
+            // GET /movies - List movies with pagination & search
             getMovies: builder.query<ApiResponse<Movie[]>, GetMoviesParams | void>({
                 query: (params) => {
                     const queryParams = new URLSearchParams();
+                    if (params?.page) queryParams.append("page", String(params.page));
+                    if (params?.limit) queryParams.append("limit", String(params.limit));
                     if (params?.searchTerm) queryParams.append("searchTerm", params.searchTerm);
                     if (params?.watched !== undefined) queryParams.append("watched", String(params.watched));
+                    if (params?.all) queryParams.append("all", "true");
 
                     const queryString = queryParams.toString();
                     return {

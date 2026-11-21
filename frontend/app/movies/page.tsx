@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import React, { Suspense } from 'react';
 import { MoviesView } from '@/components/movies/movies-view';
+import { MovieTableSkeleton } from '@/components/ui/loading-skeleton';
 
 export const metadata: Metadata = {
   title: 'Movie Archive — Build Your Path to Doomsday',
@@ -13,5 +15,9 @@ export const metadata: Metadata = {
 };
 
 export default function MoviesPage() {
-  return <MoviesView />;
+  return (
+    <Suspense fallback={<MovieTableSkeleton rows={8} />}>
+      <MoviesView />
+    </Suspense>
+  );
 }

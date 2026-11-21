@@ -23,6 +23,14 @@ app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 app.use(express.static(path.join(__dirname, "../public"), { index: false }));
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
+app.get("/favicon.ico", (req: Request, res: Response) => {
+    res.sendFile(path.join(__dirname, "../public/favicon.ico"));
+});
+
+app.get("/icon.svg", (req: Request, res: Response) => {
+    res.type("image/svg+xml").sendFile(path.join(__dirname, "../public/icon.svg"));
+});
+
 app.get("/", (req: Request, res: Response) => {
     const indexPath = path.join(__dirname, "../public/index.html");
     fs.readFile(indexPath, "utf8", (err, html) => {
