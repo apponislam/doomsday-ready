@@ -1,0 +1,18 @@
+{
+    "name": "doomsday-ready",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Full-stack MCU Rewatch and Watch-Party Booking App",
+    "scripts": {
+        "dev": "concurrently -n \"backend,frontend\" -c \"blue,red\" \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+        "dev:backend": "npm --prefix backend run dev",
+        "dev:frontend": "npm --prefix frontend run dev",
+        "build": "npm --prefix backend run build && npm --prefix frontend run build",
+        "build:backend": "npm --prefix backend run build",
+        "build:frontend": "npm --prefix frontend run build",
+        "install:all": "npm --prefix backend install && npm --prefix frontend install"
+    },
+    "devDependencies": {
+        "concurrently": "^9.1.2"
+    }
+}

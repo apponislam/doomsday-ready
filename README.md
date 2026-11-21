@@ -278,22 +278,35 @@ docker compose down
 
 If running without Docker:
 
-### Backend Setup
+### Quick Start from Root (Run Both Together)
+
+You can run both backend and frontend concurrently from the root with a single command:
 
 ```bash
-cd backend
-npm install
+# 1. Install dependencies across both backend and frontend
+npm run install:all
+
+# 2. Start both Backend (:5000) and Frontend (:3000) simultaneously
 npm run dev
 ```
 
-Backend starts on [http://localhost:5000](http://localhost:5000). _(Requires MongoDB running locally on port 27017)_.
+- **Frontend**: [http://localhost:3000](http://localhost:3000)
+- **Backend**: [http://localhost:5000](http://localhost:5000) _(Requires MongoDB running on port 27017)_
 
-### Frontend Setup
+---
 
+### Running Services Individually
+
+If you prefer separate terminal windows:
+
+#### Backend Only
 ```bash
-cd frontend
-npm install
-npm run dev
+npm run dev:backend
+# or: cd backend && npm run dev
 ```
 
-Frontend starts on [http://localhost:3000](http://localhost:3000).
+#### Frontend Only
+```bash
+npm run dev:frontend
+# or: cd frontend && npm run dev
+```
