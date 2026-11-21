@@ -57,3 +57,6 @@ process.on("SIGTERM", () => shutdown(undefined, 0, "SIGTERM"));
 process.on("warning", (warning) => {
     console.warn("⚠️ Node.js Warning:", warning.name, warning.message, warning.stack);
 });
+
+export default app;
+

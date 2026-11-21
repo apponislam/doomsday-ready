@@ -5,7 +5,18 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+const getValidUrl = (url?: string): URL | undefined => {
+    if (!url || !url.trim()) return undefined;
+    try {
+        const trimmed = url.trim();
+        const normalized = trimmed.startsWith("http://") || trimmed.startsWith("https://") ? trimmed : `https://${trimmed}`;
+        return new URL(normalized);
+    } catch {
+        return undefined;
+    }
+};
+
+const siteUrlObject = getValidUrl(process.env.NEXT_PUBLIC_SITE_URL);
 
 export const viewport: Viewport = {
     themeColor: "#0b0c0e",
@@ -15,7 +26,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-    ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
+    ...(siteUrlObject ? { metadataBase: siteUrlObject } : {}),
     title: {
         default: "DOOMSDAY READY — MCU Rewatch Guide & Premiere Booking",
         template: "%s | DOOMSDAY READY",
@@ -34,7 +45,7 @@ export const metadata: Metadata = {
     openGraph: {
         type: "website",
         locale: "en_US",
-        ...(siteUrl ? { url: siteUrl } : {}),
+        ...(siteUrlObject ? { url: siteUrlObject.toString() } : {}),
         siteName: "DOOMSDAY READY",
         title: "DOOMSDAY READY — MCU Rewatch Guide & Premiere Booking",
         description: "Build your path to Avengers: Doomsday. Optimized MCU rewatch orders, story prerequisite dependency tracking, and opening-night watch party ticket bundle calculator.",

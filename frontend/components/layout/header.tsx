@@ -16,6 +16,9 @@ export function Header() {
     } else if (pathname.startsWith("/booking")) {
         category = "OPENING NIGHT";
         title = "Reserve the squad";
+    } else if (pathname !== "/") {
+        category = "SYSTEM ALERT";
+        title = "Coordinates Unresolved";
     }
 
     return (
